@@ -29,7 +29,7 @@ case $OS in
     Ubuntu|Debian)
         echo "apt-get install -y libtool libudev-dev automake autoconf ant curl lib32z1 lib32ncurses5 lib32bz2-1.0"
         sudo apt-get install -y libtool libudev-dev automake autoconf \
-        ant curl lib32z1 lib32ncurses5 lib32bz2-1.0
+        ant curl lib32z1 lib32ncurses5 libbz2-1.0:i386
         ;;
     Archlinux|Arch)
         echo "pacman -Syy"
