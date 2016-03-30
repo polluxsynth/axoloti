@@ -72,7 +72,7 @@
  */
 #define STM32_ADC_ADCPRE                    ADC_CCR_ADCPRE_DIV4
 #if BOARD_AUDIOTHINGIES_P6
-#define STM32_ADC_USE_ADC1                  FALSE
+#define STM32_ADC_USE_ADC1                  TRUE // TODO: FALSE
 // TODO: Remove axoloti_board.c too
 #else
 #define STM32_ADC_USE_ADC1                  TRUE
