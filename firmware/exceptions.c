@@ -191,7 +191,9 @@ void exception_initiate_dfu(void) {
   volatile int i = 20;
   while (i--) {
     volatile int j = 1 << 12;
+#ifdef LED1_PIN
     palTogglePad(LED1_PORT, LED1_PIN);
+#endif
     while (j--) {
       volatile int k = 1 << 8;
       while (k--) {
@@ -374,7 +376,9 @@ void terminator(void) {
   volatile int i = 20;
   while (i--) {
     volatile int j = 1 << 12;
+#ifdef LED1_PIN
     palTogglePad(LED1_PORT, LED1_PIN);
+#endif
     while (j--) {
       volatile int k = 1 << 8;
       while (k--) {
@@ -430,7 +434,9 @@ void prvGetRegistersFromStack(uint32_t *pulFaultStackAddress) {
   WWDG->CR = WWDG_CR_T;
 #endif
 
+#ifdef LED1_PIN
   palClearPad(LED1_PORT, LED1_PIN);
+#endif
 
   codec_clearbuffer();
 

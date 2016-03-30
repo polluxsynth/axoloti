@@ -95,12 +95,18 @@ void DispayAbortErr(int err) {
   refresh_LCD();
 #endif
 // blink red slowly, green off
+#ifdef LED1_PIN
   palWritePad(LED1_PORT, LED1_PIN, 0);
+#endif
   int i = 10;
   while (i--) {
+#ifdef LED2_PIN
     palWritePad(LED2_PORT, LED2_PIN, 1);
+#endif
     chThdSleepMilliseconds(1000);
+#ifdef LED2_PIN
     palWritePad(LED2_PORT, LED2_PIN, 0);
+#endif
     chThdSleepMilliseconds(1000);
   }
   NVIC_SystemReset();
@@ -113,8 +119,10 @@ int main(void) {
   // float usb inputs, hope the host notices detach...
   palSetPadMode(GPIOA, 11, PAL_MODE_INPUT); palSetPadMode(GPIOA, 12, PAL_MODE_INPUT);
   // setup LEDs
+#ifdef LED1_PIN
   palSetPadMode(LED1_PORT,LED1_PIN,PAL_MODE_OUTPUT_PUSHPULL);
   palSetPad(LED1_PORT,LED1_PIN);
+#endif
 #ifdef LED2_PIN
   palSetPadMode(LED2_PORT,LED2_PIN,PAL_MODE_OUTPUT_PUSHPULL);
 #endif
@@ -186,9 +194,13 @@ int main(void) {
     LCD_drawStringN(0, 3, "Erased sector", 128);
     LCD_drawNumber3D(80, 3, i);
     refresh_LCD();
+#ifdef LED2_PIN
     palWritePad(LED2_PORT,LED2_PIN,1);
+#endif
     chThdSleepMilliseconds(100);
+#ifdef LED2_PIN
     palWritePad(LED2_PORT,LED2_PIN,0);
+#endif
     DBGPRINTCHAR('f');
     DBGPRINTHEX(i);
   }
@@ -222,8 +234,13 @@ int main(void) {
     }
 //    DBGPRINTHEX(f);
     if ((i & 0xFFF) == 0) {
+#ifdef LED2_PIN
       palWritePad(LED2_PORT,LED2_PIN,1);
-      chThdSleepMilliseconds(100); palWritePad(LED2_PORT,LED2_PIN,0);
+#endif
+      chThdSleepMilliseconds(100);
+#ifdef LED2_PIN
+      palWritePad(LED2_PORT,LED2_PIN,0);
+#endif
       DBGPRINTCHAR('j');
       DBGPRINTHEX(destptr);
       DBGPRINTHEX(*(srcptr));

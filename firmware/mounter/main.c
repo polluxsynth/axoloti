@@ -202,10 +202,12 @@ static const USBConfig usbConfig =
 /* Turns on a LED when there is I/O activity on the USB port */
 static void usbActivity(bool_t active)
 {
+#ifdef LED1_PIN
     if (active)
         palSetPad(LED1_PORT, LED1_PIN);
     else
         palClearPad(LED1_PORT, LED1_PIN);
+#endif
 }
 
 /* USB mass storage configuration */
@@ -229,10 +231,18 @@ int main(void)
     palSetPadMode(GPIOA, 11, PAL_MODE_INPUT);
     palSetPadMode(GPIOA, 12, PAL_MODE_INPUT);
     // setup LEDs, red+green on
+#ifdef LED1_PIN
     palSetPadMode(LED1_PORT, LED1_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+#endif
+#ifdef LED2_PIN
     palSetPadMode(LED2_PORT, LED2_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+#endif
+#ifdef LED1_PIN
     palClearPad(LED1_PORT,LED1_PIN);
+#endif
+#ifdef LED2_PIN
     palClearPad(LED2_PORT,LED2_PIN);
+#endif
 
     chSysInit();
 
@@ -255,8 +265,12 @@ int main(void)
     msdInit(&UMSD1);
 
     /* turn off green LED, turn on red LED */
+#ifdef LED1_PIN
     palClearPad(LED1_PORT, LED1_PIN);
+#endif
+#ifdef LED2_PIN
     palSetPad(LED2_PORT, LED2_PIN);
+#endif
 
     /* start the USB mass storage service */
     int ret = msdStart(&UMSD1, &msdConfig);
