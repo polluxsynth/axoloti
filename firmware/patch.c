@@ -211,7 +211,9 @@ static msg_t ThreadDSP(void *arg) {
       else if (patchStatus == STOPPED){
         codec_clearbuffer();
       }
+#ifndef BOARD_AUDIOTHINGIES_P6
       adc_convert();
+#endif
       DspTime = RTT2US(hal_lld_get_counter_value() - tStart);
       dspLoadPct = (100 * DspTime) / (1000000 / 3000);
       if (dspLoadPct > 99) {
