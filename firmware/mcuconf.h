@@ -43,7 +43,11 @@
 #define STM32_CLOCK48_REQUIRED              TRUE
 #define STM32_SW                            STM32_SW_PLL
 #define STM32_PLLSRC                        STM32_PLLSRC_HSE
+#ifdef BOARD_AUDIOTHINGIES_P6
+#define STM32_PLLM_VALUE                    12
+#else
 #define STM32_PLLM_VALUE                    8
+#endif
 #define STM32_PLLN_VALUE                    336
 #define STM32_PLLP_VALUE                    2
 #define STM32_PLLQ_VALUE                    7
