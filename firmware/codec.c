@@ -28,6 +28,8 @@
 #include "codec_ADAU1961.h"
 #elif (BOARD_AXOLOTI_V01)
 #include "codec_WM8731.h"
+#elif (BOARD_AUDIOTHINGIES_P6)
+#include "codec_CS4354.h"
 #endif
 
 int32_t buf[BUFSIZE*2] __attribute__ ((section (".sram2")));
@@ -50,6 +52,8 @@ void codec_init(void) {
 #elif ((BOARD_AXOLOTI_V03)||(BOARD_AXOLOTI_V05))
   codec_ADAU1961_i2s_init(SAMPLERATE);
   codec_ADAU1961_hw_init(SAMPLERATE);
+#elif (BOARD_AUDIOTHINGIES_P6)
+  codec_CS4354_i2s_init_48k();
 #else
 #error "BOARD_ not defined"
 #endif
@@ -75,4 +79,6 @@ void codec_clearbuffer(void) {
 #include "codec_ADAU1961.c"
 #elif (BOARD_AXOLOTI_V05)
 #include "codec_ADAU1961_SAI.c"
+#elif (BOARD_AUDIOTHINGIES_P6)
+#include "codec_CS4354.c"
 #endif
