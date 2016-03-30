@@ -152,6 +152,12 @@ void serial_midi_init(void) {
    * Activates the serial driver 2 using the driver default configuration.
    * PA2(TX) and PA3(RX) are routed to USART2.
    */
+#ifdef BOARD_AUDIOTHINGIES_P6
+  // RX
+  palSetPadMode(GPIOC, 10, PAL_MODE_ALTERNATE(7) | PAL_MODE_INPUT_PULLUP);
+  // TX
+  palSetPadMode(GPIOC, 11, PAL_MODE_ALTERNATE(7) | PAL_STM32_OTYPE_OPENDRAIN);
+#else
 #ifdef BOARD_AXOLOTI_V05
   // RX
   palSetPadMode(GPIOG, 9, PAL_MODE_ALTERNATE(8) | PAL_MODE_INPUT_PULLUP);
@@ -162,6 +168,7 @@ void serial_midi_init(void) {
   palSetPadMode(GPIOB, 7, PAL_MODE_ALTERNATE(7)|PAL_MODE_INPUT_PULLUP);
   // TX
   palSetPadMode(GPIOB, 6, PAL_MODE_ALTERNATE(7)|PAL_STM32_OTYPE_OPENDRAIN);
+#endif
 #endif
   sdStart(&SDMIDI, &sdMidiCfg);
   chThdCreateStatic(waThreadMidi, sizeof(waThreadMidi), NORMALPRIO, ThreadMidi,

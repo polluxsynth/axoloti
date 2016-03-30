@@ -67,7 +67,12 @@
  * ADC driver system settings.
  */
 #define STM32_ADC_ADCPRE                    ADC_CCR_ADCPRE_DIV4
+#if BOARD_AUDIOTHINGIES_P6
+#define STM32_ADC_USE_ADC1                  FALSE
+// TODO: Remove axoloti_board.c too
+#else
 #define STM32_ADC_USE_ADC1                  TRUE
+#endif
 #define STM32_ADC_USE_ADC2                  FALSE
 #define STM32_ADC_USE_ADC3                  FALSE
 #ifdef BOARD_AXOLOTI_V05
@@ -134,6 +139,10 @@
 #define STM32_I2C_USE_I2C1                  TRUE
 #define STM32_I2C_USE_I2C2                  FALSE
 #define STM32_I2C_USE_I2C3                  TRUE
+#elif BOARD_AUDIOTHINGIES_P6
+#define STM32_I2C_USE_I2C1                  TRUE
+#define STM32_I2C_USE_I2C2                  FALSE
+#define STM32_I2C_USE_I2C3                  FALSE
 #else
 #define STM32_I2C_USE_I2C1                  TRUE
 #define STM32_I2C_USE_I2C2                  TRUE
@@ -192,12 +201,16 @@
 /*
  * SERIAL driver system settings.
  */
+#if BOARD_AUDIOTHINGIES_P6
+#define STM32_SERIAL_USE_USART1             FALSE
+#else
 #define STM32_SERIAL_USE_USART1             TRUE
+#endif
 #define STM32_SERIAL_USE_USART2             TRUE
 #define STM32_SERIAL_USE_USART3             TRUE
 #define STM32_SERIAL_USE_UART4              FALSE
 #define STM32_SERIAL_USE_UART5              FALSE
-#ifdef BOARD_AXOLOTI_V05
+#if BOARD_AXOLOTI_V05
 #define STM32_SERIAL_USE_USART6             TRUE
 #else
 #define STM32_SERIAL_USE_USART6             FALSE
@@ -213,7 +226,11 @@
 /*
  * SPI driver system settings.
  */
+#ifndef AUDIOTHINGIES_P6
 #define STM32_SPI_USE_SPI1                  TRUE
+#else
+#define STM32_SPI_USE_SPI1                  FALSE
+#endif
 #ifdef BOARD_AXOLOTI_V05
 #define STM32_SPI_SPI1_RX_DMA_STREAM        STM32_DMA_STREAM_ID(2, 2)
 #else
@@ -223,7 +240,7 @@
 #define STM32_SPI_SPI1_DMA_PRIORITY         1
 #define STM32_SPI_SPI1_IRQ_PRIORITY         10
 
-#ifdef BOARD_AXOLOTI_V05
+#if BOARD_AXOLOTI_V05 || BOARD_AUDIOTHINGIES_P6
 #define STM32_SPI_USE_SPI2                  FALSE
 #else
 #define STM32_SPI_USE_SPI2                  TRUE
