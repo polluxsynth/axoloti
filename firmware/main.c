@@ -97,9 +97,18 @@ int main(void) {
 
 #if ENABLE_SERIAL_DEBUG
 // SD2 for serial debug output
+#ifdef BOARD_AUDIOTHINGIES_P6
+// GPIOA2/3 used for DIN_INH/LATCH on P6, and none of the other pins that are
+// free can be assigned to any USART, but set one up anyway, using pins
+// that are not available on the P6 MCU, to keep the software happy (TODO)
+  palSetPadMode(GPIOD, 6, PAL_MODE_ALTERNATE(7) | PAL_MODE_INPUT); // RX
+  palSetPadMode(GPIOD, 5, PAL_MODE_OUTPUT_PUSHPULL); // TX
+  palSetPadMode(GPIOD, 5, PAL_MODE_ALTERNATE(7)); // TX
+#else
   palSetPadMode(GPIOA, 3, PAL_MODE_ALTERNATE(7) | PAL_MODE_INPUT); // RX
   palSetPadMode(GPIOA, 2, PAL_MODE_OUTPUT_PUSHPULL); // TX
   palSetPadMode(GPIOA, 2, PAL_MODE_ALTERNATE(7)); // TX
+#endif
 // 115200 baud
   static const SerialConfig sd2Cfg = {115200,
         0, 0, 0};
@@ -113,16 +122,21 @@ int main(void) {
 
   InitPConnection();
 
+#ifndef BOARD_AUDIOTHINGIES_P6
+  // PC.1 is LCD E on P6
   // display SPI CS?
   palSetPadMode(GPIOC, 1, PAL_MODE_OUTPUT_PUSHPULL);
   palSetPad(GPIOC, 1);
+#endif
 
   chThdSleepMilliseconds(10);
 
   palSetPadMode(SW2_PORT, SW2_PIN, PAL_MODE_INPUT_PULLDOWN);
 
   axoloti_board_init();
+#ifndef BOARD_AUDIOTHINGIES_P6
   adc_init();
+#endif
   axoloti_math_init();
   midi_init();
   start_dsp_thread();
@@ -138,6 +152,7 @@ int main(void) {
   ui_init();
 
 #if (BOARD_AXOLOTI_V05)
+// TODO: Remove sdram.c from build for P6
   configSDRAM();
   //memTest();
 #endif
