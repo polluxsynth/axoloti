@@ -15,6 +15,10 @@
  * You should have received a copy of the GNU General Public License along with
  * Axoloti. If not, see <http://www.gnu.org/licenses/>.
  */
+#include "axoloti_defines.h"
+#ifdef BOARD_AUDIOTHINGIES_P6
+#include "board_p6.h"
+#endif
 #ifndef _BOARD_H_
 #define _BOARD_H_
 
