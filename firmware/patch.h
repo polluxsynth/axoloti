@@ -18,6 +18,7 @@
 #ifndef __PATCH_H
 #define __PATCH_H
 #include <stdint.h>
+#include "board.h"
 #include "ch.h"
 #include "hal.h"
 #include "ui.h"
