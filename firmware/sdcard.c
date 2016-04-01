@@ -150,6 +150,7 @@ void sdcard_init(void) {
    };
    struct EventListener el0, el1;
    */
+#if ((BOARD_AXOLOTI_V03)||(BOARD_AXOLOTI_V05))
   palSetPadMode(GPIOC, 8, PAL_MODE_ALTERNATE(12) | PAL_STM32_OSPEED_HIGHEST);
   palSetPadMode(GPIOC, 9, PAL_MODE_ALTERNATE(12) | PAL_STM32_OSPEED_HIGHEST);
   palSetPadMode(GPIOC, 10, PAL_MODE_ALTERNATE(12) | PAL_STM32_OSPEED_HIGHEST);
@@ -177,12 +178,15 @@ void sdcard_init(void) {
     if (!retries)
       break;
   }
+#endif
 }
 
 void sdcard_attemptMountIfUnmounted() {
+#if ((BOARD_AXOLOTI_V03)||(BOARD_AXOLOTI_V05))
   if (fs_ready)
     return;
   InsertHandler(0);
+#endif
 }
 
 void sdcard_unmount(void){
