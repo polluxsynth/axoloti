@@ -92,7 +92,9 @@ int main(void) {
   halInit();
   chSysInit();
 
+#if ((BOARD_AXOLOTI_V03)||(BOARD_AXOLOTI_V05))
   sdcard_init();
+#endif
   sysmon_init();
 
 #if ENABLE_SERIAL_DEBUG
