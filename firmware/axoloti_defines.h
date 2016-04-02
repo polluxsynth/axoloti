@@ -29,6 +29,7 @@ typedef int32_t int32buffer[BUFSIZE];
 //#define BOARD_STM32F4DISCOVERY 1
 //#define BOARD_AXOLOTI_V03 1
 #define BOARD_AXOLOTI_V05 1
+//#define BOARD_AUDIOTHINGIES_P6 1
 
 // firmware version 1.0.0.1
 #define FWVERSION1 1
@@ -39,6 +40,7 @@ typedef int32_t int32buffer[BUFSIZE];
 #if (BOARD_STM32F4DISCOVERY)
 #elif (BOARD_AXOLOTI_V03)
 #elif (BOARD_AXOLOTI_V05)
+#elif (BOARD_AUDIOTHINGIES_P6)
 #else
 #error Must define board!
 #endif
