@@ -732,6 +732,7 @@ void PExReceiveByte(unsigned char c) {
         *((unsigned char *)position) = c;
         position++;
         if (value == 0) {
+#if ((BOARD_AXOLOTI_V03)||(BOARD_AXOLOTI_V05))
           FRESULT err;
           header = 0;
           state = 0;
@@ -749,6 +750,7 @@ void PExReceiveByte(unsigned char c) {
           if (err != FR_OK) {
             LogTextMessage("File close failed");
           }
+#endif
           AckPending = 1;
         }
       }
@@ -817,7 +819,9 @@ void PExReceiveByte(unsigned char c) {
       }
       else {
         FileName[state - 8] = 0;
+#if ((BOARD_AXOLOTI_V03)||(BOARD_AXOLOTI_V05))
         ManipulateFile();
+#endif
         header = 0;
         state = 0;
         AckPending = 1;
