@@ -1,3 +1,23 @@
+/**
+ * Copyright (C) 2016 Ricard Wanderlof
+ *
+ * This file is part of Axoloti.
+ *
+ * 24Cxx EEPROM driver adapted from Timon Wong's ChibiOS-EEPROM driver.
+ *
+ * Axoloti is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ *
+ * Axoloti is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * Axoloti. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 /*
   Copyright (c) 2013 Timon Wong
 
@@ -23,6 +43,7 @@
 /*
   Copyright 2012 Uladzimir Pylinski aka barthess.
   You may use this work without restrictions, as long as this notice is included.
+  Copyright 2017 Ricard Wanderlof.
   The work is provided "as is" without warranty of any kind, neither express nor implied.
 */
 
@@ -47,12 +68,31 @@ Note:
 #include "ch.h"
 #include "hal.h"
 
-#include "eeprom/eeprom.h"
-#include "eeprom/base_rw.h"
+#include "eeprom.h"
+
+#include "axoloti.h" // for LogTextMessage
 
 #if HAL_USE_I2C || defined(__DOXYGEN__)
 
-#if EEPROM_DRV_USE_24XX || defined(__DOXYGEN__)
+typedef struct {
+  uint32_t size; /* total 24Cxx size */
+  uint32_t pagesize; /* size of one 24Cxx page */
+  systime_t write_time; /* write time for page write (ms) */
+  i2caddr_t addr; /* Non-configurable chip address (normally 0xA0 >> 1) */
+  I2CConfig i2cfg;
+} EepromConfig_t;
+
+/* The pagesize memeber must be no larger than PAGESIZE_MAX for any chip */
+static EepromConfig_t EepromConfigs[EEPROM_TYPES] =
+	{ { 65536, 128, 5, 0xa0 >> 1,
+	    { OPMODE_I2C, 400000, FAST_DUTY_CYCLE_2 } } }; /* 24C512 */
+
+typedef struct {
+  EepromConfig_t *eeprom;
+  I2CDriver     *i2cp;
+  i2caddr_t     pinaddr; /* pin configured address */
+  uint8_t	*pagebuf;
+} I2CEepromConfig_t;
 
 /*
  ******************************************************************************
@@ -64,6 +104,10 @@ Note:
 #else
 #define EEPROM_I2C_CLOCK (i2cp->config->clock_speed)
 #endif
+
+#define ADDR_SIZE 2 // # address bytes in EEPROM commands
+
+#define PAGESIZE_MAX 128 // maximum size of EEPROM page that we support
 
 /*
  ******************************************************************************
@@ -116,26 +160,28 @@ static systime_t calc_timeout(I2CDriver *i2cp, size_t txbytes, size_t rxbytes) {
  *
  * @param[in] eepcfg    pointer to configuration structure of eeprom file
  * @param[in] offset    addres of 1-st byte to be read
- * @param[in] data      pointer to buffer with data to be written
  * @param[in] len       number of bytes to be red
  */
-static msg_t eeprom_read(const I2CEepromFileConfig *eepcfg,
-                         uint32_t offset, uint8_t *data, size_t len) {
-
+msg_t eeprom_read(const I2CEepromConfig_t *eepcfg, uint32_t offset, size_t len)
+{
   msg_t status = RDY_RESET;
   systime_t tmo = calc_timeout(eepcfg->i2cp, 2, len);
 
-  chDbgCheck(((len <= eepcfg->size) && ((offset + len) <= eepcfg->size)),
+  chDbgCheck(((len <= eepcfg->eeprom->size) &&
+	     ((offset + len) <= eepcfg->eeprom->size)),
              "out of device bounds");
 
-  eeprom_split_addr(eepcfg->write_buf, (offset + eepcfg->barrier_low));
+  /* Put address bytes at start of pagebuf */
+  eeprom_split_addr(eepcfg->pagebuf, offset);
 
 #if I2C_USE_MUTUAL_EXCLUSION
   i2cAcquireBus(eepcfg->i2cp);
 #endif
 
-  status = i2cMasterTransmitTimeout(eepcfg->i2cp, eepcfg->addr,
-                                    eepcfg->write_buf, 2, data, len, tmo);
+  status = i2cMasterTransmitTimeout(eepcfg->i2cp,
+				    eepcfg->eeprom->addr + eepcfg->pinaddr,
+                                    eepcfg->pagebuf, ADDR_SIZE,
+				    eepcfg->pagebuf + 2, len, tmo);
 
 #if I2C_USE_MUTUAL_EXCLUSION
   i2cReleaseBus(eepcfg->i2cp);
@@ -151,207 +197,241 @@ static msg_t eeprom_read(const I2CEepromFileConfig *eepcfg,
  *
  * @param[in] eepcfg  pointer to configuration structure of eeprom file
  * @param[in] offset  addres of 1-st byte to be write
- * @param[in] data    pointer to buffer with data to be written
  * @param[in] len     number of bytes to be written
  */
-static msg_t eeprom_write(const I2CEepromFileConfig *eepcfg, uint32_t offset,
-                          const uint8_t *data, size_t len) {
+msg_t eeprom_write(const I2CEepromConfig_t *eepcfg, uint32_t offset, size_t len)
+{
   msg_t status = RDY_RESET;
-  systime_t tmo = calc_timeout(eepcfg->i2cp, (len + 2), 0);
+  systime_t tmo = calc_timeout(eepcfg->i2cp, (len + ADDR_SIZE), 0);
 
-  chDbgCheck(((len <= eepcfg->size) && ((offset + len) <= eepcfg->size)),
+  chDbgCheck(((len <= eepcfg->eeprom->size) &&
+	     ((offset + len) <= eepcfg->eeprom->size)),
              "out of device bounds");
-  chDbgCheck((((offset + eepcfg->barrier_low) / eepcfg->pagesize) ==
-              (((offset + eepcfg->barrier_low) + len - 1) / eepcfg->pagesize)),
+  chDbgCheck(((offset / eepcfg->eeprom->pagesize) ==
+              ((offset + len - 1) / eepcfg->eeprom->pagesize)),
              "data can not be fitted in single page");
 
   /* write address bytes */
-  eeprom_split_addr(eepcfg->write_buf, (offset + eepcfg->barrier_low));
-  /* write data bytes */
-  memcpy(&(eepcfg->write_buf[2]), data, len);
+  eeprom_split_addr(eepcfg->pagebuf, offset);
+  /* data bytes already in buffer, written by application */
 
 #if I2C_USE_MUTUAL_EXCLUSION
   i2cAcquireBus(eepcfg->i2cp);
 #endif
 
-  status = i2cMasterTransmitTimeout(eepcfg->i2cp, eepcfg->addr,
-                                    eepcfg->write_buf, (len + 2), NULL, 0, tmo);
+  status = i2cMasterTransmitTimeout(eepcfg->i2cp,
+				    eepcfg->eeprom->addr + eepcfg->pinaddr,
+                                    eepcfg->pagebuf, len + ADDR_SIZE, NULL, 0,
+				    tmo);
 
 #if I2C_USE_MUTUAL_EXCLUSION
   i2cReleaseBus(eepcfg->i2cp);
 #endif
 
   /* wait until EEPROM process data */
-  chThdSleep(eepcfg->write_time);
+  chThdSleep(eepcfg->eeprom->write_time);
 
   return status;
 }
 
-/**
- * @brief   Determines and returns size of data that can be processed
- */
-static size_t __clamp_size(void *ip, size_t n) {
+/****************************************************************************
+ * Patch API
+ ****************************************************************************/
 
-  if ((eepfs_getposition(ip) + n) > eepfs_getsize(ip))
-    return eepfs_getsize(ip) - eepfs_getposition(ip);
-  else
-    return n;
-}
+// We need to keep the pagebuf here and not in the application, as all
+// application data is on the stack and hence in CCM, which is not DMAable
+static uint8_t pagebuf[PAGESIZE_MAX + ADDR_SIZE];
 
-/**
- * @brief   Write data that can be fitted in one page boundary
- */
-static void __fitted_write(void *ip, const uint8_t *data, size_t len, uint32_t *written) {
+/* For ref. only
+static I2CEepromConfig_t P6_EepromConfig =
+	{ &EepromConfigs[EEPROM_TYPE_24C512], &I2CD1, 0, &pagebuf[0] };
+*/
 
-  msg_t status = RDY_RESET;
+// For now we allow a single instance, and this is it.
+static I2CEepromConfig_t I2CEepromConfig;
 
-  chDbgCheck(len != 0, "something broken in hi level part");
+enum eeprom_op { EEPROM_NONE, EEPROM_READ, EEPROM_WRITE };
 
-  status = eeprom_write(((I2CEepromFileStream *)ip)->cfg,
-                        eepfs_getposition(ip), data, len);
-  if (status == RDY_OK) {
-    *written += len;
-    eepfs_lseek(ip, eepfs_getposition(ip) + len);
-  }
-}
+typedef struct {
 
-/**
- * @brief     Write data to EEPROM.
- * @details   Only one EEPROM page can be written at once. So fucntion
- *            splits large data chunks in small EEPROM transactions if needed.
- * @note      To achieve the maximum effectivity use write operations
- *            aligned to EEPROM page boundaries.
- */
-static size_t write(void *ip, const uint8_t *bp, size_t n) {
+  uint32_t addr; /* address in eeprom */
+  size_t len; /* length of data. Must be multiple of page size */
+  enum eeprom_op op;
+  EepromStatus_t status;
+} EepromCmd_t;
 
-  size_t   len = 0;     /* bytes to be written at one trasaction */
-  uint32_t written; /* total bytes successfully written */
-  uint16_t pagesize;
-  uint32_t firstpage;
-  uint32_t lastpage;
+EepromCmd_t EepromCmd;
 
-  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL), "write");
-
-  if (n == 0)
-    return 0;
-
-  n = __clamp_size(ip, n);
-  if (n == 0)
-    return 0;
-
-  pagesize  =  ((EepromFileStream *)ip)->cfg->pagesize;
-  firstpage = (((EepromFileStream *)ip)->cfg->barrier_low +
-               eepfs_getposition(ip)) / pagesize;
-  lastpage  = (((EepromFileStream *)ip)->cfg->barrier_low +
-               eepfs_getposition(ip) + n - 1) / pagesize;
-
-  written = 0;
-  /* data fitted in single page */
-  if (firstpage == lastpage) {
-    len = n;
-    __fitted_write(ip, bp, len, &written);
-    bp += len;
-    return written;
-  }
-
-  else {
-    /* write first piece of data to first page boundary */
-    len =  ((firstpage + 1) * pagesize) - eepfs_getposition(ip);
-    len -= ((EepromFileStream *)ip)->cfg->barrier_low;
-    __fitted_write(ip, bp, len, &written);
-    bp += len;
-
-    /* now writes blocks at a size of pages (may be no one) */
-    while ((n - written) > pagesize) {
-      len = pagesize;
-      __fitted_write(ip, bp, len, &written);
-      bp += len;
-    }
-
-    /* wrtie tail */
-    len = n - written;
-    if (len == 0)
-      return written;
-    else {
-      __fitted_write(ip, bp, len, &written);
-    }
-  }
-
-  return written;
-}
+/* Thread for EEPROM read/write */
+static WORKING_AREA(waThreadEeprom, 256);
+static Thread *pThreadEeprom;
 
 /**
- * Read some bytes from current position in file. After successful
- * read operation the position pointer will be increased by the number
- * of read bytes.
+ * @brief   EEPROM thread function.
+ *
+ * @param[in] arg  unused
  */
-static size_t read(void *ip, uint8_t *bp, size_t n) {
+static msg_t ThreadEeprom(void *arg)
+{
   msg_t status = RDY_OK;
 
-  chDbgCheck((ip != NULL) && (((EepromFileStream *)ip)->vmt != NULL), "read");
+  (void)arg;
 
-  if (n == 0)
-    return 0;
+#if CH_USE_REGISTRY
+  chRegSetThreadName("eeprom");
+#endif
 
-  n = __clamp_size(ip, n);
-  if (n == 0)
-    return 0;
+  while (1) {
+    size_t offs;
+    chEvtWaitAny((eventmask_t)1);
 
-  /* Stupid I2C cell in STM32F1x does not allow to read single byte.
-     So we must read 2 bytes and return needed one. */
-#if defined(STM32F1XX_I2C)
-  if (n == 1) {
-    uint8_t __buf[2];
-    /* if NOT last byte of file requested */
-    if ((eepfs_getposition(ip) + 1) < eepfs_getsize(ip)) {
-      if (read(ip, __buf, 2) == 2) {
-        eepfs_lseek(ip, (eepfs_getposition(ip) + 1));
-        bp[0] = __buf[0];
-        return 1;
-      }
-      else
-        return 0;
-    }
-    else {
-      eepfs_lseek(ip, (eepfs_getposition(ip) - 1));
-      if (read(ip, __buf, 2) == 2) {
-        eepfs_lseek(ip, (eepfs_getposition(ip) + 2));
-        bp[0] = __buf[1];
-        return 1;
-      }
-      else
-        return 0;
+    if (!I2CEepromConfig.i2cp) continue; /* Nothing set up, nothing to do. */
+
+    int pagesize = I2CEepromConfig.eeprom->pagesize;
+
+    switch (EepromCmd.op)
+    {
+      case EEPROM_READ:
+        for (offs = 0; offs < EepromCmd.len; offs += pagesize) {
+LogTextMessage("EEprom read: bus 0x%08lx, devaddr %d, addr %u, len %d", I2CEepromConfig.i2cp, I2CEepromConfig.pinaddr, EepromCmd.addr + offs, pagesize);
+	  status = eeprom_read(&I2CEepromConfig,
+			       EepromCmd.addr + offs, pagesize);
+          if (status != RDY_OK) break;
+	}
+LogTextMessage("EEprom read: done: status = %d, errors = 0x%02x",  status, i2cGetErrors(I2CEepromConfig.i2cp));
+	EepromCmd.status.ok = (status == RDY_OK);
+	EepromCmd.op = EEPROM_NONE;
+        EepromCmd.status.busy = 0; /* signal done */
+	break;
+      case EEPROM_WRITE:
+        for (offs = 0; offs < EepromCmd.len; offs += pagesize) {
+LogTextMessage("EEprom write: bus 0x%08lx, devaddr %d, addr %u, len %d", I2CEepromConfig.i2cp, I2CEepromConfig.pinaddr, EepromCmd.addr + offs, pagesize);
+	  status = eeprom_write(&I2CEepromConfig,
+				EepromCmd.addr + offs, pagesize);
+          if (status != RDY_OK) break;
+	}
+LogTextMessage("EEprom write: done: status = %d, errors = 0x%02x",  status, i2cGetErrors(I2CEepromConfig.i2cp));
+	EepromCmd.status.ok = (status == RDY_OK);
+	EepromCmd.op = EEPROM_NONE;
+        EepromCmd.status.busy = 0; /* signal done */
+	break;
+      case EEPROM_NONE:
+      default:
+        break;
     }
   }
-#endif /* defined(STM32F1XX_I2C) */
-
-  /* call low level function */
-  status  = eeprom_read(((I2CEepromFileStream *)ip)->cfg,
-                        eepfs_getposition(ip), bp, n);
-  if (status != RDY_OK)
-    return 0;
-  else {
-    eepfs_lseek(ip, (eepfs_getposition(ip) + n));
-    return n;
-  }
+  return (msg_t)0;
 }
 
-static const struct EepromFilelStreamVMT vmt = {
-  write,
-  read,
-  eepfs_put,
-  eepfs_get,
-  eepfs_close,
-  eepfs_geterror,
-  eepfs_getsize,
-  eepfs_getposition,
-  eepfs_lseek,
-};
+/**
+ * @brief   EEPROM init. Just start EEPROM thread.
+ *
+ */
+void eeprom_init(void)
+{
+  I2CEepromConfig.i2cp = NULL; /* no I2C bus configured yet. */
 
-EepromDevice eepdev_24xx = {
-  &vmt
-};
+  pThreadEeprom = chThdCreateStatic(waThreadEeprom, sizeof(waThreadEeprom),
+				    NORMALPRIO, ThreadEeprom, NULL);
+}
 
-#endif /* EEPROM_DRV_USE_24XX */
+/**
+ * @brief   Patch API: EEPROM setup.
+ *
+ * @param[in] type     EEPROM type (24LC512 etc)
+ * @param[in] bus      Pointer to driver structure (I2CDx), representing port
+ * @param[in] pinaddr  Address pins set on EEPROM (i.e. A0..A2)
+ */
+void *eeprom_setup(enum EepromTypes type, I2CDriver *bus, uint8_t pinaddr)
+{
+/* Done by object or init
+  palSetPadMode(GPIOB, 6, PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN);
+  palSetPadMode(GPIOB, 7, PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN);
+*/
+
+  I2CEepromConfig.eeprom = &EepromConfigs[type];
+  I2CEepromConfig.i2cp = bus;
+  I2CEepromConfig.pinaddr = pinaddr;
+  I2CEepromConfig.pagebuf = pagebuf;
+
+  i2cStart(I2CEepromConfig.i2cp, &I2CEepromConfig.eeprom->i2cfg);
+
+  return &I2CEepromConfig;
+}
+
+/**
+ * @brief   Patch API: EEPROM teardown.
+ *
+ * @param[in] handle   handle to EEPROM instance
+ */
+void eeprom_teardown(void *handle)
+{
+  if (I2CEepromConfig.i2cp) i2cStop(I2CEepromConfig.i2cp);
+
+  I2CEepromConfig.i2cp = NULL; // deconfigured
+}
+
+/**
+ * @brief   Patch API: Get EEPROM buffer pointer.
+ *
+ * @param[in] handle    handle to Eeprom config structure
+ * @param[in] bufsize   optional return value with buffer size
+ */
+uint8_t *eeprom_get_pagebuf(void *handle, int *bufsize)
+{
+  I2CEepromConfig_t *config = handle;
+
+  if (config != &I2CEepromConfig) return NULL;
+
+  if (bufsize) *bufsize = config->eeprom->pagesize;
+
+  return config->pagebuf + 2;
+}
+
+/**
+ * @brief   Patch API: EEPROM write.
+ *
+ * @param[in] handle    handle to Eeprom config structure
+ * @param[in] addr      address in EEPROM of 1-st byte to be written
+ * @param[in] len       number of bytes to be written
+ */
+EepromStatus_t *eeprom_write_data(void *handle, uint32_t addr, size_t len)
+{
+  if (handle != &I2CEepromConfig) return NULL;
+  if (EepromCmd.status.busy) return NULL;
+
+  chDbgCheck(len % I2CEepromConfig.eeprom->pagesize == 0,
+	     "len not multiple of page size");
+  EepromCmd.addr = addr;
+  EepromCmd.len = len;
+  EepromCmd.status.busy = 1;
+  EepromCmd.op = EEPROM_WRITE;
+  chEvtSignal(pThreadEeprom, (eventmask_t)1);
+
+  return &EepromCmd.status;
+}
+
+/**
+ * @brief   Patch API: EEPROM read.
+ *
+ * @param[in] handle    handle to Eeprom config structure
+ * @param[in] addr      address in EEPROM of 1-st byte to be read
+ * @param[in] len       number of bytes to be red
+ */
+EepromStatus_t *eeprom_read_data(void *handle, uint32_t addr, size_t len)
+{
+  if (handle != &I2CEepromConfig) return NULL;
+  if (EepromCmd.status.busy) return NULL;
+
+  chDbgCheck(len % I2CEepromConfig.eeprom->pagesize == 0,
+	     "len not multiple of page size");
+  EepromCmd.addr = addr;
+  EepromCmd.len = len;
+  EepromCmd.status.busy = 1;
+  EepromCmd.op = EEPROM_READ;
+  chEvtSignal(pThreadEeprom, (eventmask_t)1);
+
+  return &EepromCmd.status;
+}
 
 #endif /* HAL_USE_I2C */

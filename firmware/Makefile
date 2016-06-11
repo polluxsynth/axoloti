@@ -115,6 +115,7 @@ CSRC = $(PORTSRC) \
        ${FIRMWARE}/patch.c \
        ${FIRMWARE}/flash.c \
        ${FIRMWARE}/virtual_control.c \
+       ${FIRMWARE}/eeprom.c \
        ${CMSIS}/DSP_Lib/Source/TransformFunctions/arm_rfft_init_q31.c \
        ${CMSIS}/DSP_Lib/Source/TransformFunctions/arm_rfft_q31.c \
        ${CMSIS}/DSP_Lib/Source/TransformFunctions/arm_rfft_init_q15.c \
