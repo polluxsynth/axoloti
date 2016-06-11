@@ -30,6 +30,7 @@
 #include "midi.h"
 #include "sdcard.h"
 #include "sysmon.h"
+#include "eeprom.h"
 
 void axoloti_init(void);
 

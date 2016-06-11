@@ -30,6 +30,7 @@
 #include "string.h"
 #include <stdio.h>
 
+#include "eeprom.h"
 #include "codec.h"
 #include "ui.h"
 #include "midi.h"
@@ -138,6 +139,9 @@ int main(void) {
   axoloti_board_init();
 #ifndef BOARD_AUDIOTHINGIES_P6
   adc_init();
+#endif
+#ifdef BOARD_AUDIOTHINGIES_P6
+  eeprom_init();
 #endif
   axoloti_math_init();
   midi_init();
