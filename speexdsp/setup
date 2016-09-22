@@ -1,0 +1,7 @@
+HERE=$(dirname $(readlink -f $0))
+echo We are $HERE
+cd $HERE
+echo Our compiler is $CC
+PREFIX=$HERE/../firmware/build/
+#EPREFIX=$HERE/../firmware/build/
+./configure --prefix=$PREFIX --with-fft=kiss --enable-fixed-point --disable-float-api --disable-examples
