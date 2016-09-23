@@ -21,6 +21,7 @@ axoloti_firmware ?= ../firmware
 
 CHIBIOS = ${axoloti_release}/chibios
 CMSIS = ${axoloti_release}/CMSIS
+SPEEXDSP = ${axoloti_release}/speexdsp
 
 SPACE := 
 SPACE += 
@@ -41,6 +42,7 @@ include $(CHIBIOS)/os/various/fatfs_bindings/fatfs.mk
 
 INCDIR = $(CMSIS)/Include \
 		 $(PORTINC) $(KERNINC) $(TESTINC) \
+	 ${SPEEXDSP}/include \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(FATFSINC) \
          ${FIRMWARE} $(CHIBIOS)
          
