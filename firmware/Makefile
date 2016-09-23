@@ -64,6 +64,7 @@ axoloti_home ?= ..
 axoloti_firmware ?= ../firmware
 
 CHIBIOS = ${axoloti_release}/chibios
+SPEEXDSP = ${axoloti_release}/speexdsp
 
 
 # theoretically should be this...., but CSRC expansion cannot cope with escape spaces
@@ -145,6 +146,10 @@ CSRC = $(PORTSRC) \
        ${CMSIS}/DSP_Lib/Source/FilteringFunctions/arm_iir_lattice_init_q31.c\
        ${CMSIS}/DSP_Lib/Source/FilteringFunctions/arm_iir_lattice_q31.c\
        ${CMSIS}/DSP_Lib/Source/CommonTables/arm_common_tables.c \
+       ${SPEEXDSP}/libspeexdsp/mdf.c \
+       ${SPEEXDSP}/libspeexdsp/fftwrap.c \
+       ${SPEEXDSP}/libspeexdsp/kiss_fft.c \
+       ${SPEEXDSP}/libspeexdsp/kiss_fftr.c \
        ${FIRMWARE}/STM32_USB_Host_Library/Core/Src/usbh_core.c \
        ${FIRMWARE}/STM32_USB_Host_Library/Core/Src/usbh_ctlreq.c \
        ${FIRMWARE}/STM32_USB_Host_Library/Core/Src/usbh_ioreq.c \
@@ -197,6 +202,7 @@ ASMSRC = $(PORTASM)
 
 INCDIR = ${CMSIS}/Include \
 		 $(PORTINC) $(KERNINC) $(TESTINC) \
+	 ${SPEEXDSP}/include ${SPEEXDSP}/libspeexdsp \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) \
          $(FATFSINC) \
          $(CHIBIOS)/os/various \
@@ -275,6 +281,8 @@ DLIBS =
 
 # List all user C define here, like -D_DEBUG=1
 UDEFS = -DARM_MATH_CM4 -D__FPU_PRESENT
+# Definitions for speexdsp lib, dug out from speex config.h
+UDEFS += -DFIXED_POINT -DUSE_KISS_FFT -DVAR_ARRAYS -DUSE_ALLOCA -DDISABLE_FLOAT_API -DHAVE_STDINT_H -DEXPORT='__attribute__((visibility("default")))'
 
 # Define ASM defines here
 UADEFS =
