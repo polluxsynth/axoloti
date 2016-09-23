@@ -282,7 +282,7 @@ DLIBS =
 # List all user C define here, like -D_DEBUG=1
 UDEFS = -DARM_MATH_CM4 -D__FPU_PRESENT
 # Definitions for speexdsp lib, dug out from speex config.h
-UDEFS += -DFIXED_POINT -DUSE_KISS_FFT -DVAR_ARRAYS -DUSE_ALLOCA -DDISABLE_FLOAT_API -DHAVE_STDINT_H -DEXPORT='__attribute__((visibility("default")))'
+UDEFS += -DFIXED_POINT -DUSE_KISS_FFT -DVAR_ARRAYS -DUSE_ALLOCA -DDISABLE_FLOAT_API -DHAVE_STDINT_H -DEXPORT='__attribute__((visibility("default")))' -DOS_SUPPORT_CUSTOM
 
 # Define ASM defines here
 UADEFS =

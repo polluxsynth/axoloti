@@ -1,8 +1,7 @@
-/* Copyright (C) 2007 Jean-Marc Valin
+/* Copyright (C) 2007 Jean-Marc Valin, 2016 Ricard Wanderlof
       
    File: os_support.h
-   This is the (tiny) OS abstraction layer. Aside from math.h, this is the
-   only place where system headers are allowed.
+   OS abstraction layer for speexdsp lib for Axoloti enviornment.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -31,20 +30,13 @@
    POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef OS_SUPPORT_H
-#define OS_SUPPORT_H
+#ifndef OS_SUPPORT_CUSTOM_H
+#define OS_SUPPORT_CUSTOM_H
 
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
+/* The USB printout function in Axoloti. */
+extern void LogTextMessage(const char* format, ...);
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-#ifdef OS_SUPPORT_CUSTOM
-#include "os_support_custom.h"
-#endif
-
+#if 0
 /** Speex wrapper for calloc. To do your own dynamic allocation, all you need to do is replace this function, speex_realloc and speex_free 
     NOTE: speex_alloc needs to CLEAR THE MEMORY */
 #ifndef OVERRIDE_SPEEX_ALLOC
@@ -105,67 +97,59 @@ static inline void speex_free_scratch (void *ptr)
 #ifndef OVERRIDE_SPEEX_MEMSET
 #define SPEEX_MEMSET(dst, c, n) (memset((dst), (c), (n)*sizeof(*(dst))))
 #endif
-
-
-#ifndef OVERRIDE_SPEEX_FATAL
-static inline void _speex_fatal(const char *str, const char *file, int line)
-{
-   fprintf (stderr, "Fatal (internal) error in %s, line %d: %s\n", file, line, str);
-   exit(1);
-}
 #endif
 
-#ifndef OVERRIDE_SPEEX_WARNING
+
+#define OVERRIDE_SPEEX_FATAL
+static inline void _speex_fatal(const char *str, const char *file, int line)
+{
+   LogTextMessage("Fatal (internal) error in %s, line %d: %s\n", file, line, str);
+   while (1) /* hang */
+     ;
+}
+
+#define OVERRIDE_SPEEX_WARNING
 static inline void speex_warning(const char *str)
 {
 #ifndef DISABLE_WARNINGS
-   fprintf (stderr, "warning: %s\n", str);
+   LogTextMessage("warning: %s\n", str);
 #endif
 }
-#endif
 
-#ifndef OVERRIDE_SPEEX_WARNING_INT
+#define OVERRIDE_SPEEX_WARNING_INT
 static inline void speex_warning_int(const char *str, int val)
 {
 #ifndef DISABLE_WARNINGS
-   fprintf (stderr, "warning: %s %d\n", str, val);
+   LogTextMessage("warning: %s %d\n", str, val);
 #endif
 }
-#endif
 
-#ifndef OVERRIDE_SPEEX_NOTIFY
+#define OVERRIDE_SPEEX_NOTIFY
 static inline void speex_notify(const char *str)
 {
 #ifndef DISABLE_NOTIFICATIONS
-   fprintf (stderr, "notification: %s\n", str);
+   LogTextMessage("notification: %s\n", str);
 #endif
 }
-#endif
 
-#ifndef OVERRIDE_SPEEX_PUTC
+#define OVERRIDE_SPEEX_PUTC
 /** Speex wrapper for putc */
 static inline void _speex_putc(int ch, void *file)
 {
    FILE *f = (FILE *)file;
-   fprintf(f, "%c", ch);
+   LogTextMessage("0x%02x ", ch);
 }
-#endif
 
-#define speex_fatal(str) _speex_fatal(str, __FILE__, __LINE__);
-#define speex_assert(cond) {if (!(cond)) {speex_fatal("assertion failed: " #cond);}}
-
-#if 0 // see os_support_custom.h
 #ifndef RELEASE
 static inline void print_vec(float *vec, int len, char *name)
 {
    int i;
-   printf ("%s ", name);
+   LogTextMessage("%s ", name);
    for (i=0;i<len;i++)
-      printf (" %f", vec[i]);
-   printf ("\n");
+      LogTextMessage(" %f", vec[i]);
+   LogTextMessage("\n");
 }
 #endif
-#endif
 
-#endif
+#endif /* OS_SUPPORT_CUSTOM_H */
 
