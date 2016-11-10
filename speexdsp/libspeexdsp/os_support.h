@@ -53,6 +53,8 @@ static inline void *speex_alloc (int size)
    /* WARNING: this is not equivalent to malloc(). If you want to use malloc() 
       or your own allocator, YOU NEED TO CLEAR THE MEMORY ALLOCATED. Otherwise
       you will experience strange bugs */
+LogTextMessage("Calling calloc(%d)", size);
+int i; for (i = 0; i < 1000000; i++);
    return calloc(size,1);
 }
 #endif
