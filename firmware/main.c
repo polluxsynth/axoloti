@@ -179,8 +179,8 @@ void HAL_Delay(unsigned int n) {
 }
 
 void *_sbrk(int incr) {
-#define BRKSIZE 2800
-  static char memory[BRKSIZE];
+#define BRKSIZE 4*1024*1024
+  static char memory[BRKSIZE] __attribute__ ((section (".sdram")));
   static char *memptr = &memory[0];
 
   if (memptr + incr < &memory[BRKSIZE]) {
