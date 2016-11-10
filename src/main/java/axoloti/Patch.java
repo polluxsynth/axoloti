@@ -1501,6 +1501,7 @@ public class Patch {
         SortByPosition();
         String c = "extern \"C\" { \n";
         c += generateIncludes();
+        c += "#include <speex/speex_echo.h>\n";
         c += "}\n"
                 + "#pragma GCC diagnostic ignored \"-Wunused-variable\"\n"
                 + "#pragma GCC diagnostic ignored \"-Wunused-parameter\"\n";
