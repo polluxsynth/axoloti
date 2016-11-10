@@ -178,7 +178,18 @@ void HAL_Delay(unsigned int n) {
   chThdSleepMilliseconds(n);
 }
 
-void _sbrk(void) {
+void *_sbrk(int incr) {
+#define BRKSIZE 2800
+  static char memory[BRKSIZE];
+  static char *memptr = &memory[0];
+
+  if (memptr + incr < &memory[BRKSIZE]) {
+    void *retptr = memptr;
+    memptr += incr;
+    return retptr;
+  }
+  LogTextMessage("Out of memory");
+  HAL_Delay(100);
   while (1) {
   }
 }
