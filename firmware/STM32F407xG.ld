@@ -176,6 +176,8 @@ SECTIONS
         * (.ccmramend.*);
     } > CCMRAMEND
 
+_ramend		= .;
+
     .sdram (NOLOAD) : ALIGN(4) SUBALIGN(4)
     {
         KEEP(*(.sdram))
@@ -186,5 +188,5 @@ SECTIONS
 PROVIDE(end = .);
 _end            = .;
 
-__heap_base__   = _end;
+__heap_base__   = _ramend;
 __heap_end__    = __ram_end__;
