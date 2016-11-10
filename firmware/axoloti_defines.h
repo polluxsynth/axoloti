@@ -22,8 +22,8 @@
 
 #define PI_F 3.1415927f
 #define SAMPLERATE 48000
-#define BUFSIZE 16
-#define BUFSIZE_POW 4
+#define BUFSIZE 128
+#define BUFSIZE_POW 7
 typedef int32_t int32buffer[BUFSIZE];
 
 //#define BOARD_STM32F4DISCOVERY 1
