@@ -115,7 +115,7 @@ static void codec_CS43L22_dma_init(void) {
   dmaStreamSetPeripheral(i2sdma, &(SPI3->DR));
   dmaStreamSetMemory0(i2sdma, buf);
   dmaStreamSetMemory1(i2sdma, buf2);
-  dmaStreamSetTransactionSize(i2sdma, 64);
+  dmaStreamSetTransactionSize(i2sdma, BUFSIZE * 2 * 2);
   dmaStreamSetMode(i2sdma, i2stxdmamode | STM32_DMA_CR_MINC);
   dmaStreamClearInterrupt(i2sdma);
   dmaStreamEnable(i2sdma);

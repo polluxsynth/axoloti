@@ -53,7 +53,7 @@ unsigned int DspTime;
 char loadFName[64] = "";
 loadPatchIndex_t loadPatchIndex = UNINITIALIZED;
 
-static int32_t inbuf[32];
+static int32_t inbuf[BUFSIZE * 2];
 static int32_t *outbuf;
 
 static WORKING_AREA(waThreadDSP, 7200) __attribute__ ((section (".ccmramend")));
@@ -108,7 +108,7 @@ static msg_t ThreadDSP(void *arg) {
           // swap halfwords...
           int i;
           int32_t *p = inbuf;
-          for (i = 0; i < 32; i++) {
+          for (i = 0; i < BUFSIZE * 2; i++) {
             __ASM
             volatile ("ror %0, %1, #16" : "=r" (*p) : "r" (*p));
             p++;
@@ -117,7 +117,7 @@ static msg_t ThreadDSP(void *arg) {
         (patchMeta.fptr_dsp_process)(inbuf, outbuf);
 #if (BOARD_STM32F4DISCOVERY)||(BOARD_AXOLOTI_V03)
         p = outbuf;
-        for (i = 0; i < 32; i++) {
+        for (i = 0; i < BUFSIZE * 2; i++) {
           __ASM
           volatile ("ror %0, %1, #16" : "=r" (*p) : "r" (*p));
           p++;
@@ -277,7 +277,7 @@ void start_dsp_thread(void) {
 
 void computebufI(int32_t *inp, int32_t *outp) {
   int i;
-  for (i = 0; i < 32; i++) {
+  for (i = 0; i < BUFSIZE * 2; i++) {
     inbuf[i] = inp[i];
   }
   outbuf = outp;

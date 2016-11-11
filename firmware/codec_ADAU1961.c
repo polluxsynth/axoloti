@@ -447,7 +447,7 @@ static void codec_ADAU1961_dma_init(void) {
 // my double buffer test
   dmaStreamSetMemory0(i2sdma_ADAU1961, buf);
   dmaStreamSetMemory1(i2sdma_ADAU1961, buf2);
-  dmaStreamSetTransactionSize(i2sdma_ADAU1961, 64);
+  dmaStreamSetTransactionSize(i2sdma_ADAU1961, BUFSIZE * 2 * 2);
   dmaStreamSetMode(i2sdma_ADAU1961, i2stxdmamode | STM32_DMA_CR_MINC);
 //  dmaStreamSetFIFO(i2sdma,
 
@@ -475,7 +475,7 @@ static void codec_ADAU1961_dma_init(void) {
 // my double buffer test
   dmaStreamSetMemory0(i2sdma_ADAU1961rx, rbuf2);
   dmaStreamSetMemory1(i2sdma_ADAU1961rx, rbuf);
-  dmaStreamSetTransactionSize(i2sdma_ADAU1961rx, 64); //PLAYBACK_BUFFER_SIZE);
+  dmaStreamSetTransactionSize(i2sdma_ADAU1961rx, BUFSIZE * 2 * 2);
   dmaStreamSetMode(i2sdma_ADAU1961rx, i2srxdmamode | STM32_DMA_CR_MINC);
 
   dmaStreamClearInterrupt(i2sdma_ADAU1961rx);

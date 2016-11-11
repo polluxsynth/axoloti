@@ -425,7 +425,7 @@ void codec_ADAU1961_i2s_init(uint16_t sampleRate) {
   dmaStreamSetPeripheral(sai_a_dma, &(sai_a->DR));
   dmaStreamSetMemory0(sai_a_dma, buf);
   dmaStreamSetMemory1(sai_a_dma, buf2);
-  dmaStreamSetTransactionSize(sai_a_dma, 32);
+  dmaStreamSetTransactionSize(sai_a_dma, BUFSIZE * 2);
   dmaStreamSetMode(sai_a_dma, sai_a_dma_mode | STM32_DMA_CR_MINC);
 
   b |= dmaStreamAllocate(sai_b_dma, STM32_SAI_B_IRQ_PRIORITY,
@@ -439,7 +439,7 @@ void codec_ADAU1961_i2s_init(uint16_t sampleRate) {
   dmaStreamSetPeripheral(sai_b_dma, &(sai_b->DR));
   dmaStreamSetMemory0(sai_b_dma, rbuf);
   dmaStreamSetMemory1(sai_b_dma, rbuf2);
-  dmaStreamSetTransactionSize(sai_b_dma, 32);
+  dmaStreamSetTransactionSize(sai_b_dma, BUFSIZE * 2);
   dmaStreamSetMode(sai_b_dma, sai_b_dma_mode | STM32_DMA_CR_MINC);
 
 
