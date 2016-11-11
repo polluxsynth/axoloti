@@ -131,7 +131,7 @@ static msg_t ThreadDSP(void *arg) {
       }
       adc_convert();
       DspTime = RTT2US(hal_lld_get_counter_value() - tStart);
-      dspLoadPct = (100 * DspTime) / (1000000 / 3000);
+      dspLoadPct = (100 * DspTime) / (1000000 / (SAMPLERATE / BUFSIZE));
       if (dspLoadPct > 99) {
         // overload:
         // clear output buffers

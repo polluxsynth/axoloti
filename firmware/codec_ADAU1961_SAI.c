@@ -180,6 +180,8 @@ void ADAU1961_WriteRegister6(uint16_t RegisterAddr, uint8_t * RegisterValues) {
 
 void codec_ADAU1961_hw_init(uint16_t samplerate) {
 
+  uint8_t convsr = 0; /* divisor from base sample rate */
+
   tmo = MS2ST(4);
   chThdSleepMilliseconds(5);
 
@@ -198,7 +200,15 @@ void codec_ADAU1961_hw_init(uint16_t samplerate) {
 
     uint8_t pllreg[6];
 
-    if (samplerate == 48000) {
+    if (samplerate == 44100) {
+      // reg setting 0x0271 0193 2901
+      pllreg[0] = 0x02;
+      pllreg[1] = 0x71;
+      pllreg[2] = 0x01;
+      pllreg[3] = 0x93;
+      pllreg[4] = 0x29;
+      pllreg[5] = 0x01;
+    } else { /* 48000 and all others */
       // reg setting 0x007D 0012 3101
       pllreg[0] = 0x00;
       pllreg[1] = 0x7D;
@@ -207,18 +217,17 @@ void codec_ADAU1961_hw_init(uint16_t samplerate) {
       pllreg[4] = 0x31;
       pllreg[5] = 0x01;
     }
-    else if (samplerate == 44100) {
-      // reg setting 0x0271 0193 2901
-      pllreg[0] = 0x02;
-      pllreg[1] = 0x71;
-      pllreg[2] = 0x01;
-      pllreg[3] = 0x93;
-      pllreg[4] = 0x29;
-      pllreg[5] = 0x01;
+
+    switch (samplerate) {
+    case 44100:
+    case 48000: convsr = 0; break; // fs/1
+    case 32000: convsr = 5; break; // fs/1.5
+    case 24000: convsr = 4; break; // fs/2
+    case 16000: convsr = 3; break; // fs/3
+    case 12000: convsr = 2; break; // fs/4
+    case 8000: convsr = 1; break; // fs/4
+    default: break;
     }
-    else
-      while (1) {
-      }
 
     ADAU1961_WriteRegister6(ADAU1961_REG_R1_PLLC, &pllreg[0]);
 
@@ -261,7 +270,7 @@ void codec_ADAU1961_hw_init(uint16_t samplerate) {
     ADAU1961_WriteRegister(ADAU1961_REG_R16_SERP1, 0x00); // 32bit samples
 //ADAU1961_WriteRegister(ADAU1961_REG_R16_SERP1,0x60); // 64bit samples, spdif clock!
 #endif
-    ADAU1961_WriteRegister(ADAU1961_REG_R17_CON0, 0x00);
+    ADAU1961_WriteRegister(ADAU1961_REG_R17_CON0, convsr);
     ADAU1961_WriteRegister(ADAU1961_REG_R18_CON1, 0x00);
     ADAU1961_WriteRegister(ADAU1961_REG_R19_ADCC, 0x10);
     ADAU1961_WriteRegister(ADAU1961_REG_R20_LDVOL, 0x00);
